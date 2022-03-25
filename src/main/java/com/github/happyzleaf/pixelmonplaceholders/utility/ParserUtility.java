@@ -136,17 +136,45 @@ public class ParserUtility {
 				return asReadableList(values, 1, evolutions.toArray());
 			}
 			case "ability":
-				if (values.length > 1) {
-					String value1 = values[1];
-					int index = value1.equals("1") ? 0 : value1.equals("2") ? 1 : value1.equalsIgnoreCase("h") ? 2 : -1;
-					if (index != -1) {
-						final List<AbilityBase> abilities = baseStats.getAllAbilities();
-						return index >= abilities.size() ? PPConfig.noneText : abilities.get(index).getLocalizedName();
-					}
-					throwWrongInput("1", "2", "h");
-				} else {
-					throw new NoValueException("Not enough arguments.");
-				}
+                if (values.length > 1) {
+                    String value1 = values[1];
+
+                    if (value1.equalsIgnoreCase("h")) {
+                        if (baseStats.getHiddenAbility().isPresent()) {
+                            return baseStats.getHiddenAbility().get().getLocalizedName().replace(" ", "");
+                        } else {
+                            return PPConfig.noneText;
+                        }
+                    }
+                    else{
+                        int index = -1;
+
+                        if (value1.equals("1")) {
+                            index = 0;
+                        }
+                        if (value1.equals("2")) {
+                            index = 1;
+                        }
+
+                        if (index != -1) {
+                            final List<AbilityBase> abilities = baseStats.getAllAbilities();
+                            try {
+                                String ab = abilities.get(index).getLocalizedName().replace(" ", "");
+                                if (IsHiddenAbility(baseStats, ab)) {
+                                    return PPConfig.noneText;
+                                } else {
+                                    return ab;
+                                }
+                            } catch (Exception ex) {
+                                return PPConfig.noneText;
+                            }
+                        }
+                    }
+
+                    throwWrongInput("1", "2", "h");
+                } else {
+                    throw new NoValueException("Not enough arguments.");
+                }
 			case "abilities":
 				return asReadableList(values, 1, baseStats.getAllAbilities().stream().map(ITranslatable::getLocalizedName).toArray());
 			case "biomes": // TODO add
@@ -452,7 +480,7 @@ public class ParserUtility {
 					return formatBigNumbers(pokemon.getFriendship());
 				case "ability":
 					if (values.length == 1) {
-						return pokemon.getAbility().getLocalizedName();
+						return pokemon.getAbility().getLocalizedName().replace(" ", "");
 					} else if (values[1].equals("slot")) {
 						return pokemon.getAbilitySlot() == 2 ? "H" : pokemon.getAbilitySlot() + 1;
 					}
@@ -820,4 +848,15 @@ public class ParserUtility {
 
 		public abstract Object parse(T condition, String[] values, int index) throws NoValueException, IllegalAccessException;
 	}
+
+    public static Boolean IsHiddenAbility(BaseStats baseStats, String ability) {
+        Optional<AbilityBase> opHA = baseStats.getHiddenAbility();
+        if(opHA.isPresent()){
+            String ab1 = opHA.get().getLocalizedName().replace(" ", "");
+            return ab1.equalsIgnoreCase(ability);
+        }
+        else {
+            return false;
+        }
+    }
 }
